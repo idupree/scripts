@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -eux
 testdir="$(mktemp -d)"
 scriptdir="$(dirname "$(readlink -f "$0")")"
 cd "/var/empty" # Make sure the scripts don't need any given pwd.
