@@ -1,0 +1,212 @@
+#!/bin/bash
+#
+# This script is for encrypting a file, not in a traditional file-encryption
+# format like GPG, but in LUKS which is traditionally a partition-encryption
+# format.  This can be useful because LUKS is random access (though it does
+# not provide all the security guarantees of LUKS; specifically, because it
+# is not in a fixed-location-on-disk partition, it does not guarantee that it
+# is possible to securely delete the key data.  Also, IANAC & I guarantee
+# nothing).  It could be used on a .squashfs file to create a read-only
+# encrypted archive with random access to file contents (unlike .gpg) and
+# with no information (besides total size) leaked to an attacker who gets
+# their hands on the file but not the key or password (unlike eCryptFS,
+# which leaks approximate file sizes and tree structure).
+#
+# You probably want to edit this script to use more modern (though slightly
+# less compatible with old kernels) crypto parameters to luksFormat than the
+# defaults, just as you would when creating a LUKS partition;
+# e.g. perhaps (as of 2012)
+#     -s 512 -c aes-xts-plain64 -h sha256
+# (Search for luksFormat and edit the two occurrences; the script currently
+#  does not provide a better way to customize this.  I rely on the defaults
+#  by default because someday even the above parameters might be
+#  cryptographically broken, and cryptsetup's defaults might be updated
+#  long after I've forgotten about this script.)
+#
+# Usage:
+#   to_luksfile [--delete] unencrypted_file result_file_name
+#   to_luksfile --automatic [--delete]
+#                          unencrypted_file result_file_name < password
+# result_file_name should only contain [-_a-zA-Z0-9], and must
+#     not exist as a file already.
+# It's better not to run as root (though it works either way).
+# Creates result_file_name as the LUKS-encrypted version of unencrypted_file.
+# If successful and --delete is passed, it then deletes unencrypted_file.
+#
+# Unless --automatic is passed, this script carefully asks about every
+# step and whether you want to take it; since these steps involve doing
+# things as root, you might be relieved (or bored).
+#
+# In theory this operation of creating a file out of another file and
+# an algorithm should not require root; but the simple way to use the
+# cryptsetup tools for this does require creating loop-devices and such.
+# (Unless it's changed recently; but I doubt it would, because LUKS-files
+#  are really not the default supported case for LUKS.)
+
+set -eu
+#see 'set -x' below that can be useful for debugging/de-confusion...
+#feel free to un-comment it.
+PATH="/usr/sbin:/sbin:/usr/bin:/bin"
+
+if [ "x$1" = "x--automatic" ]
+#I wonder if I can pipe the key to somewhere in the kernel considered
+#more secure...
+#Need bash (for example) so that "echo"&"printf" is a builtin and NOT something with key on the arguments... is there any other way to do it? closures, er? perl could be better. echo -n or printf %s. or bashisms :-)  <<<"$key"
+then automatic=1 ; shift; key="$(cat -)" #; keyout() { printf '%s' "$key"; }
+else automatic=0 ; #set -x; #not -x when automatic: will reveal passphrase!
+fi
+if [ "x$1" = "x--delete" ]
+then delete=1; shift
+else delete=0
+fi
+
+sourcefile="$1"
+destfile="$2"
+
+time="$(which time)"
+
+#check for 'grep' flags
+printf a | grep -qo a
+printf a | grep -qv b
+
+#if [ -z "$destfile" ]
+#then
+#  #if sourcefile has extensions, we can delete 'em to get result name
+#  #( good for automation at lest, I guess )
+#  if printf '%s' "$sourcefile" | grep -q '^..*\.[^/]*$'
+#  then destfile="$(printf '%s' "$sourcefile" | sed 's@^\(..*\)\.[^/]*$@\1@')"
+#  else printf 'no destfile name supplied or deduced\n' >&2; exit 1
+#  fi
+#  echo "$destfile"
+#  if [ -e "$destfile" ]
+#  then printf "to_luksfile skipping deduced destfile name '%s' since file exists (and 'succeeding': hack)"'\n' "$destfile" >&2; exit 0
+#  fi
+#fi
+
+sudo_ () {
+  #stderr NECESSARY for messages, so it doesn't go into pipes w/ losetup, etc!
+  if [ "$automatic" = 1 ]
+  then
+    printf 'to_luksfile# %s\n' "$*" >&2
+    date >&2; "$time" sudo "$@"; return "$?"
+  else
+    while true
+    do
+      printf "  [Hit enter to do this, ctrl-C to quit, or [s]kip:]\n" >&2
+      printf '    # %s\n' "$*" >&2
+      IFS='' read -r response
+      if printf '%s' "$response" | grep -qi '^\(s\|sk\|ski\|skip.*\)$'
+        then printf '[skipped]\n'>&2; return 0
+      #grep is stupid and line-based. So -v doesn't negate the sense
+      #of the exit status, for example.
+      elif ! printf '%s' "$response" | tr -d ' \t\r\n' | grep -q '.'
+        # a primitive progress meter: reference the clock (`date`)!
+        then date >&2; "$time" sudo "$@"; return "$?"
+      fi
+    done
+  fi
+}
+#sudo_dd_bytes {
+#expr only has 64-bits, maybe, at least it says it overflows
+#> expr 8001001001 + 8001001001
+#16002002002
+#> expr 8001001001 '*' 8001001001
+#expr: *: Numerical result out of range
+#And no harm using 'blocks' for these purposes
+#(actually for security it'd be better to round up more, to obscure
+#the size!)
+#sudo_dd_blocks {
+#  bytes="$1"; shift
+#  dd_expr="true"
+#  next_bs="32768"
+#
+#
+#  sudo_ sh -c dd "$@" "bs=$calc_bs" "count="$cal
+#}
+
+#limit result name
+#er, no reason
+#printf '%s' "$destfile" | grep -qv '[^-_a-zA-Z0-9]'
+
+#make sure source file exists sensibly
+test -f "$sourcefile"
+date >&2
+#but that destfile doesn't!
+test '!' -e "$destfile" || printf "warning, destfile exists!\n" >&2
+
+#fix the exit status, which is 1 if the resulting number is validly 0
+safe_expr() {
+  expr "$@"
+  exprstatus="$?"
+  if test "$exprstatus" -eq 1; then exprstatus=0; fi
+  return "$exprstatus"
+}
+
+#calculate needed size (in 512-byte blocks) :
+#1032(blocks)(for luks header) + filesize-in-blocks
+sourcefile_bytes="$(stat -c '%s' "$sourcefile")"
+printf 'source bytes: %s\n' "$sourcefile_bytes"
+#round up so it fits! (but don't base it on how many blocks the
+# filesystem is currently allocating to it)
+sourcefile_blocks="$(safe_expr "(" "$sourcefile_bytes" "+" "511" ")" "/" "512")"
+#uh why 1032? observation (fdisk to determine interior size) suggests
+#3096 might be a better number, or something. So I'll just be cautious-ish
+destfile_blocks="$(safe_expr "4096" "+" "$sourcefile_blocks")"
+block_size="512"
+block_count="$destfile_blocks"
+b_size="$block_size"
+b_count="$block_count"
+#b_size="65536"
+##must be multiples!
+#b_factor="$(safe_expr "$b_size" "/" "$block_size")"
+#b_count="$(safe_expr "(" "$destfile_blocks" "-" "1" "+" "$b_factor" ")" "/" "$b_factor")"
+
+#randomness makes encryption safer
+#higher bs is faster ... or not! still 100% CPU at bs 2^16!
+#I wonder if Linux is attributing the urandom-calculating time to this process
+#er wait, most'll be overwritten anyway, there's gotta be a faster way
+###lets be faster than /dev/urandom
+#actually it looks like the blocks-calculation is so perfect
+#(looking at encrypted-file in 'less')
+#that /dev/zero actually makes no difference, yay!
+sudo_ dd if=/dev/zero of="$destfile" bs="$b_size" count="$b_count" >&2
+
+loop_device="$(sudo_ /Users/me/scripts/losetup_echoing_loopdevice "$destfile")"
+printf "loop device: %s\n" "$loop_device" >&2
+
+if [ "$automatic" = 0 ]
+then sudo_ cryptsetup luksFormat "$loop_device"
+else sudo_ cryptsetup luksFormat --batch-mode "$loop_device" - <<<"$key" >&2
+fi
+
+
+#better not to rely on pid $$, so it's restartable
+#8 4-bit(hexadecimal) digits = 32 bits, a fair chance of no collision
+#(since I'll rarely use it concurrently anyway)
+hash="$(printf '%s\n%s\n' "$sourcefile" "$destfile" | md5sum | grep -o '^........')"
+mapped_luks_name="to_luksfile_$hash"
+
+if [ "$automatic" = 0 ]
+then sudo_ cryptsetup luksOpen "$loop_device" "$mapped_luks_name"
+else sudo_ cryptsetup luksOpen --key-file=- "$loop_device" "$mapped_luks_name" <<<"$key" >&2
+fi
+
+target_device="/dev/mapper/$mapped_luks_name"
+test -b "$target_device" #must be a block device - caught me once!
+#now put the data in there!
+sudo_ dd if="$sourcefile" of="$target_device" >&2
+
+if [ "$automatic" = 0 ]
+then printf "now you might want to Ctrl-Z or so, to look around\n">&2
+else sync; sleep 2; sync #horrible hack to try and make luks reliably close
+fi
+sudo_ cryptsetup luksClose "$mapped_luks_name" >&2
+
+sudo_ losetup -d "$loop_device" >&2
+
+date >&2
+
+if [ "$delete" = 1 ]
+then sync; sudo_ rm "$sourcefile" >&2; date >&2
+fi
+
