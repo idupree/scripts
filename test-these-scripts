@@ -13,5 +13,25 @@ echo "80characters sans newline"
 # $() strips trailing newline if any.
 test "$(printf '%s' "$("$scriptdir/80characters")" | wc -c)" = 80
 
+echo "setting up tree tests"
+mkdir -p "$testdir/test1/dir1/dir2"
+touch "$testdir/test1/dir1/file"
+ln -s '../file' "$testdir/test1/dir1/dir2/ln1"
+ln -s '../vile' "$testdir/test1/dir1/dir2/ln2"
+ln -s '..' "$testdir/test1/dir1/dir2/ln3"
+
+echo "lntree"
+"$scriptdir/lntree" "$testdir/test1" "$testdir/dest1"
+echo "lntree count"
+test "$(find "$testdir/dest1" | wc -l)" = 7
+echo "lntree contents"
+test -d "$testdir/dest1"
+test -d "$testdir/dest1/dir1"
+test -d "$testdir/dest1/dir1/dir2"
+test -f "$testdir/dest1/dir1/file"
+test -L "$testdir/dest1/dir1/dir2/ln1"
+test -L "$testdir/dest1/dir1/dir2/ln2"
+test -L "$testdir/dest1/dir1/dir2/ln3"
+
 trap - EXIT
 echo "Success!"
