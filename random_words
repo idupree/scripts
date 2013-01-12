@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Usage: random_words [n]
+#   Outputs n random words to stdout (by default, 5).
+#
+# (This implementation depends on:
+#   * my 'd' commandline-dice program
+#   * an /usr/share/dict/words , which is probably either
+#       preinstalled or a quick package-installation away.
+# )
+
+set -eu
+
+n="${1:-5}"
+
+dict=/usr/share/dict/words
+count="$(wc -l "$dict" | sed 's/ .*//')"
+printf '%s\n' "$dict: $count \"words\""
+
+for i in `seq 1 "$n"`
+do
+	sed -n "$(d "$count")p" <"$dict"
+done
+

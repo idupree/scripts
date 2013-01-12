@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Outputs a bunch of cryptographically random ASCII letter and number
+# characters. (There are 62 possibilities per character: 26 lowercase
+# letters, 26 uppercase letters, and 10 digits.)  Might be useful for
+# generating passwords, though anyone who looks over your shoulder
+# might see your future password.
+
+set -eu
+LANG=C
+LC_ALL=C
+dd if=/dev/urandom bs=512 count=1 status=noxfer 2>/dev/null | tr -d '\r\n' | sed 's/[^a-zA-Z0-9]//g'
+echo

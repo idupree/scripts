@@ -1,0 +1,9 @@
+
+" http://www.techrepublic.com/blog/security/vim-offers-strong-file-encryption-with-blowfish/4870
+
+source ~/.vimrc
+set nobackup
+set noswapfile
+set nowritebackup
+set viminfo=
+
