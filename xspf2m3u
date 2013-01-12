@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+script_basedir="$(dirname "$(readlink -f "$0")")"
+file="$1"; shift
+xsltproc "$@" "$script_basedir/xspf2m3u.xsl" "$file"

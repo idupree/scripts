@@ -36,5 +36,11 @@ test -L "$testdir/dest1/dir1/dir2/ln3"
 # 'fork' ought to have some tests.
 # They'd ideally require IPC and pseudo TTYs.
 
+echo "xspf2m3u"
+test "$("$scriptdir/xspf2m3u" "$scriptdir/tests/Playlist_1.xspf")" = \
+'file:///home/wesnoth/main_menu.ogg
+file:///home/blobwars/circuitOverlode.ogg'
+
+
 trap - EXIT
 echo "Success!"
