@@ -1,0 +1,23 @@
+#!/bin/sh
+# Usage: superchroot destdir [cmd [args...]]
+#
+# Like chroot, but fixes up a few things you probably want
+# in order to run programs in the chroot (which might e.g.
+# be the root filesystem of a different Linux distro you
+# have installed in a separate partition).  Requires root
+# privileges.
+#
+# I knew this script was pretty decent for me in 2010
+# (but look and see whether you really want to
+#  do every step this script does);
+# Linux plumbing might have changed a bit since then.
+
+set -eu
+target="$(readlink -f "$1")"; shift
+mountpoint "$target/dev" || mount -o bind /dev "$target/dev"
+mountpoint "$target/proc" || mount -t proc mynone "$target/proc"
+mountpoint "$target/sys" || mount -o bind /sys "$target/sys"
+#hmm, this is destructive if the target uses resolv.conf
+#as static configuration (unlike NetworkManager):
+cp /etc/resolv.conf "$target/etc/resolv.conf"
+exec sudo -i chroot "$target" "$@"
