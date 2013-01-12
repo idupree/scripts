@@ -1,4 +1,8 @@
 #!/bin/sh
+# Echoes 80 characters followed by \n.
+#
+# I use this occasionally to visually see how long a line is
+# (often, whether it is "too long": 80 characters is often a limit).
 for i in 0 1 2 3 4 5 6 7
 do
 	printf '[%s]3456789' "$i"
