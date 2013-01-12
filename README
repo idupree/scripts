@@ -3,3 +3,10 @@ This is a collection of scripts I've made over the years for personal use.
 Some (like lntree or fork) I find useful on their own; some (like superchroot)
 might sometimes be useful or might be better reserved for use as a reference
 example.
+
+Portability note: I use Linux.  If these scripts break on e.g. OS X, BSD
+or MinGW, I'd love if you tell me and/or submit a patch!  I try to write
+portably except when GNU features make code much easier. (I've since estimated
+that if it wants such features, it probably makes sense for me to rewrite the
+script in Python).
+
