@@ -1,0 +1,47 @@
+#!/bin/sh
+# Usage: $0 dirs...
+#   aliases contents of all dirs into the current working directory.
+#
+# This is effectively a merge operation.
+#
+# Directories that exist in any source dir will be created in the
+# destination (current) directory.
+#
+# Non-directories will be hardlinked; if multiple sources (including
+# the current directory's initial contents as a source) both have
+# a given path to a non-directory file but different inodes, this
+# script will report an error.
+#
+# This script is idempotent.  If files are added to the source
+# directory trees, this script can be re-run to update the hardlink
+# tree.  If source files are changed, replaced, or removed, see
+# above for the consequences.  The destination tree may be removed
+# with `rm -rf` without affecting the source trees, provided no
+# other shenanigans are going on.
+#
+# This script is sensitive to race conditions if a source directory
+# is modified (especially removal or renaming) while the script is
+# running.
+#
+# (OLDCODE - I wrote this when I was less good at Unix,
+#  and haven't had the need to write a better version yet.)
+
+target="`pwd`" #hack
+for d in "$@"
+do
+  cd "$target" #in case "$d" is relative
+  cd "$d" #make the find-paths nice
+  # By the way, even symlinks can be hardlinked.
+  find . -exec sh -c '
+  if test -e "$2/$1"
+  then if test \! \( "$1" -ef "$2/$1" -o \( -d "$1" -a -d "$2/$1" \) \)
+       then echo "conflict: $1 !-ef $2/$1 (from where?)">&2
+       fi
+  else if test -d "$1"
+       then mkdir "$2/$1"
+       else ln "$1" "$2/$1"
+       fi
+  fi
+  ' _ '{}' "$target" ';'
+done
+

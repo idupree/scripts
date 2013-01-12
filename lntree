@@ -1,0 +1,42 @@
+#!/bin/sh
+# Usage: lntree sourcedir destdir
+#
+# Makes a hard-link tree in destdir, first mkdir -p ing destdir.
+#
+# This script does not currently check to ensure that the two
+# are on the same filesystem, although they must be in order
+# for the hardlinks to work.
+# It also can behave badly if the source directory is modified
+# while the script is running.
+#
+# (OLDCODE - I wrote this when I was less good at Unix,
+#  and haven't had the need to write a better version yet.)
+
+set -ue
+
+# Create a canonical absolute path to the source dir,
+# so that if we cd to the dest dir, the references to
+# the source dir will still work.
+src="$(readlink -f "$1")"
+dst="$2"
+script_basedir="$(dirname "$(readlink -f "$0")")"
+
+# Fail early if the source doesn't exist
+test -e "$src"
+# or if the destination does exist
+# (because what if someone expected `lntree src dst/`
+#  to have similar semantics to `cp src dst/` and then
+#  were surprised. So just fail and make the user
+#  be explicit.)
+test \! -e "$dst"
+
+if test -d "$src"
+then
+	mkdir -p "$dst"
+	cd "$dst"
+	"$script_basedir/make_hard_archive_tree" "$src"
+else
+	mkdir -p "$(dirname "$dst")"
+	ln "$src" "$dst"
+fi
+
