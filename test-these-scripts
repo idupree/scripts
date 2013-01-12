@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+testdir="$(mktemp -d)"
+scriptdir="$(dirname "$0")"
+echo "Testing scripts from $scriptdir in $testdir ..."
+trap 'echo "test failed"' EXIT
+
+echo "80characters plus newline"
+test "$("$scriptdir/80characters" | wc -c)" = 81
+
+echo "80characters sans newline"
+# $() strips trailing newline if any.
+test "$(printf '%s' "$("$scriptdir/80characters")" | wc -c)" = 80
+
+trap - EXIT
+echo "Success!"
