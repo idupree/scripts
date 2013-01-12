@@ -1,0 +1,15 @@
+#!/bin/zsh
+# Usage: fork cmd [args...]
+#
+# Runs the command asynchronously in a way detached from the current
+# terminal: not killed when the terminal is, not exchanging stdin/out/err
+# with the terminal, not affected by Ctrl-C in the terminal, etc.
+#
+# At the time I wrote this, I didn't understand Unix ttys,
+# pipes, signals and sessions well enough to arrange it all
+# myself.  I could write a version in Python or C well enough
+# that doesn't require zsh, for one.
+"$@" &>/dev/null &!
+#is bash: nohup "$@" &>/dev/null &  good enough? & disown ?
+#also - with exec ?
+

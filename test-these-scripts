@@ -33,5 +33,8 @@ test -L "$testdir/dest1/dir1/dir2/ln1"
 test -L "$testdir/dest1/dir1/dir2/ln2"
 test -L "$testdir/dest1/dir1/dir2/ln3"
 
+# 'fork' ought to have some tests.
+# They'd ideally require IPC and pseudo TTYs.
+
 trap - EXIT
 echo "Success!"
