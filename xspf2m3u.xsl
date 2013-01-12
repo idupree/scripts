@@ -11,7 +11,7 @@ xmlns:xspf="http://xspf.org/ns/0/">
     <xsl:for-each select="//xspf:trackList/xspf:track/xspf:location">
       <xsl:value-of select="."/>
       <xsl:text>
-    </xsl:text>
+</xsl:text>
     </xsl:for-each> 
   </xsl:template>
 </xsl:stylesheet>
