@@ -1,0 +1,16 @@
+#!/bin/sh
+# Usage: gitpushn [extra args to `git push -n`]
+# Informs you what commits `git push [args]` would push.
+# You might have to enter a password if `git push` requires that,
+# but this script never actually pushes anything.
+#
+# This script depends on GNU grep.
+ranges="$(git push -n "$@" 2>&1 | grep -Eo '[0-9a-f]+\.\.[0-9a-f]+')"
+printf '%s\n' $ranges
+if [ -n "$ranges" ]
+then
+  printf '`git push %s` would push:\n\n' "$*"
+  git log $ranges
+else
+  printf '`git push %s` would push nothing.\n' "$*"
+fi
