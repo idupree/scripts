@@ -1,0 +1,15 @@
+#!/bin/bash
+# Usage: mv_spaces_to_underscores filenames...
+#   Renames any files in filenames that have spaces in the name,
+#   to have underscores in place of spaces.
+#
+#   It, alas, isn't smart enough to rename directories on the path
+#   to the file; you should use this script explicitly on each
+#   directory name first.  (Or change the script.)
+for f in "$@"
+do
+if printf '%s' "$f" | grep -q ' '
+then
+mv "$f" "$(printf '%s' "$f" | sed 's/ /_/g')"
+fi
+done

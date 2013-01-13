@@ -47,5 +47,14 @@ test -L "$testdir/a"
 test "$(readlink "$testdir/a")" = "b"
 # TODO test the interactive features.
 
+echo "mv_spaces_to_underscores"
+mkdir "$testdir/sp"
+touch "$testdir/sp"/{a,b_c_d,'e f g','h_  ij '}
+"$scriptdir/mv_spaces_to_underscores" "$testdir/sp"/*
+test "$(ls "$testdir/sp")" = 'a
+b_c_d
+e_f_g
+h___ij_'
+
 trap - EXIT
 echo "Success!"
