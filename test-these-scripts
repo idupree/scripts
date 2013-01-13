@@ -41,6 +41,11 @@ test "$("$scriptdir/xspf2m3u" "$scriptdir/tests/Playlist_1.xspf")" = \
 'file:///home/wesnoth/main_menu.ogg
 file:///home/blobwars/circuitOverlode.ogg'
 
+echo "mkSymlink"
+"$scriptdir/mkSymlink" "$testdir/a" -s b
+test -L "$testdir/a"
+test "$(readlink "$testdir/a")" = "b"
+# TODO test the interactive features.
 
 trap - EXIT
 echo "Success!"

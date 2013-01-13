@@ -1,0 +1,74 @@
+#!/bin/sh
+
+# This was mainly useful as a way for me to memorize the
+# argument order of ln -s.  I don't use it anymore.
+#
+# This script's argument order is opposite of ln -s but consistent
+# in that the symbol argument typically follows the -s argument.
+#
+# Hint: unlike cp, mv, and ln, ln -s normally completely ignores
+# the file that might correspond to its first non-option argument.
+# That argument's text is directly used as the symbol contained in
+# the symlink you're creating.
+#
+# Because of how symlink access works, a relative path in a symlink file
+# is relative to the directory the symlink is in, and an absolute path in
+# a symlink is relative to the root (/) directory of the process accessing
+# the symlink (which might be a different place than you expect if e.g.
+# you are accessing your main filesystem from a rescue CD).
+#
+# If you typically want to replace existing symlinks but not replace
+# existing files, this script protects you better than any combination
+# of ln's -f and -n options.  WARNING: it has a race condition if it
+# asks you whether to replace a symlink and while you're
+
+set -e
+
+usage="$0 placeToPutIt [--symbol|-s] symbol"
+if [ "$#" -lt 3 ]
+then
+	echo "$usage" >&2
+	exit
+fi
+sym="$3"
+place="$1"
+case "$2" in
+ -s|--symbol ) : ;;
+ * ) echo "you have forgotten how to do a symlink without forgetting" >&2; exit 4 ;;
+esac
+#dir="$(dirname -- "$place")"
+#base="$(basename -- "$place")"
+
+if test -L "$place"
+then
+	current_target="$(readlink -- "$place")"
+	echo "are you sure you want to overwrite the symlink at \"$place\"?" >&2
+	echo "current target: \"$current_target\"" >&2
+	echo "proposed value: \"$sym\"" >&2
+	echo "[y/N]" >&2
+	read r
+	case "$r" in
+	 [yY] )
+	   #race condition, btw, which is merely mitigated by this check:
+	   now_current_target="$(readlink -- "$place" || true)"
+	   if test "$current_target" != "$now_current_target"
+	   then
+	     echo "Exiting without doing anything:"
+	     echo "the symlink-to-be-replaced changed while you were thinking!" >&2
+	     exit 3
+	   fi
+	   ln -sfn -- "$sym" "$place" ;;
+	 * ) exit 1 ;;
+	esac
+elif test -e "$place"
+then
+	echo "If you want to put a symlink here, you'd better rm what's already there!" >&2
+	ls -ld -- "$place" >&2
+	file -b -- "$place" >&2
+	exit 2
+else
+	ln -sn -- "$sym" "$place"
+fi
+
+
+
