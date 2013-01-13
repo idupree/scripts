@@ -171,7 +171,8 @@ b_count="$block_count"
 #that /dev/zero actually makes no difference, yay!
 sudo_ dd if=/dev/zero of="$destfile" bs="$b_size" count="$b_count" >&2
 
-loop_device="$(sudo_ /Users/me/scripts/losetup_echoing_loopdevice "$destfile")"
+loop_device="$(sudo_ losetup -f --show "$destfile")"
+test -n "$loop_device"
 printf "loop device: %s\n" "$loop_device" >&2
 
 if [ "$automatic" = 0 ]
