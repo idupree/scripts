@@ -1,0 +1,4 @@
+#!/bin/sh
+# Usage: MkMaildir new-maildir-path
+# Creates an empty maildir-format email collection.
+mkdir -p "$1/cur" "$1/new" "$1/tmp"

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Usage: MkMbox filepath
+# Creates an empty mbox-format email collection.
+# (This works for any mbox format type.)
+touch "$1"
