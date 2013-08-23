@@ -16,9 +16,10 @@ set -eu
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 target="$(readlink -f "$1")"; shift
 mountpoint -q "$target/dev" || mount -o bind /dev "$target/dev"
+mountpoint -q "$target/dev/pts" || mount -t devpts devpts "$target/dev/pts"
 mountpoint -q "$target/proc" || mount -t proc mynone "$target/proc"
 mountpoint -q "$target/sys" || mount -o bind /sys "$target/sys"
 #hmm, this is destructive if the target uses resolv.conf
 #as static configuration (unlike NetworkManager):
 cp /etc/resolv.conf "$target/etc/resolv.conf"
-exec sudo -i chroot "$target" "$@"
+exec sudo -i env PATH=/usr/sbin:/usr/bin:/sbin:/bin chroot "$target" "$@"
