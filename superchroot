@@ -7,10 +7,10 @@
 # have installed in a separate partition).  Requires root
 # privileges.
 #
-# I knew this script was pretty decent for me in 2010
-# (but look and see whether you really want to
-#  do every step this script does);
+# I knew this script was pretty decent for me in 2010;
 # Linux plumbing might have changed a bit since then.
+# Look and see whether you really want to do
+# every step this script does.
 
 set -eu
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
