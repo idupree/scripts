@@ -22,4 +22,8 @@ mountpoint -q "$target/sys" || mount -o bind /sys "$target/sys"
 #hmm, this is destructive if the target uses resolv.conf
 #as static configuration (unlike NetworkManager):
 cp /etc/resolv.conf "$target/etc/resolv.conf"
-exec sudo -i env PATH=/usr/sbin:/usr/bin:/sbin:/bin chroot "$target" "$@"
+# since sudo and env both change $PATH, we have to find these tools with
+# the host system path beforehand.
+env="$(which env)"
+chroot="$(which chroot)"
+exec sudo -i "$env" -i TERM="$TERM" SHELL=/bin/bash PATH=/usr/sbin:/usr/bin:/sbin:/bin "$chroot" "$target" "$@"
