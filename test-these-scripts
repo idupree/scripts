@@ -56,5 +56,8 @@ b_c_d
 e_f_g
 h___ij_'
 
+echo "runc"
+test "$(runc "$scriptdir/tests/script.c" "arg 1" "arg 2")" = 'Arguments(2):  arg 1  arg 2'
+
 trap - EXIT
 echo "Success!"

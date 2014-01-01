@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# USAGE:
+#   runc code.c args
+#   #!/usr/bin/env runc
+#
+#   runc compiles code.c into a temporary directory and runs the
+#   compiled executable.  This is a bit proof-of-concept; the C code
+#   can't specify other source files to compile nor libraries to link to.
+#
+# BUGS:
+# * if _dir is in the environment, the called script receives
+#   a modified _dir.
+# * if the called script used file descriptor 3 passed from
+#   the caller, it will receive the wrong file descriptor.
+#
+# These bugs would be easy to fix if this script were written in C.
+#
+# OPEN QUESTIONS:
+# * Should a caller and/or script author be able to pass C compiler flags?
+#   And specifically, what about warnings? optimizations? linked libraries?
+#   Other local C code that this script wants to depend on?
+
+_dir=`mktemp -d`
+cc "$1" -o "$_dir/exe"
+exec 3< "$_dir/exe"
+rm "$_dir/exe"
+rmdir "$_dir"
+shift
+exec /dev/fd/3 "$@"
