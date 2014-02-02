@@ -59,5 +59,14 @@ h___ij_'
 echo "runc"
 test "$(runc "$scriptdir/tests/script.c" "arg 1" "arg 2")" = 'Arguments(2):  arg 1  arg 2'
 
+echo "random_alnum"
+"$scriptdir/random_alnum"
+test "$("$scriptdir/random_alnum" --help)" = "$("$scriptdir/random_alnum" --help)"
+test "$("$scriptdir/random_alnum")" != "$("$scriptdir/random_alnum")"
+test "$(printf '%s' "$("$scriptdir/random_alnum" -n20)" | wc -c)" = 20
+test "$(printf '%s' "$("$scriptdir/random_alnum" -b64 0-9a-f)" | wc -c)" = 16
+test "$(printf '%s' "$("$scriptdir/random_alnum" -b64 0-9a-g)" | wc -c)" = 16
+test "$(printf '%s' "$("$scriptdir/random_alnum" -b64 0-9a-e)" | wc -c)" = 17
+
 trap - EXIT
 echo "Success!"
