@@ -7,3 +7,9 @@ set noswapfile
 set nowritebackup
 set viminfo=
 
+" use:
+" to create a new vim-encrypted file:
+" vim -x -u /path/to/encryptedvimrc file_to_edit
+" to edit an existing vim-encrypted file:
+" vim -u /path/to/encryptedvimrc file_to_edit
+
