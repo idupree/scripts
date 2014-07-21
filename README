@@ -9,4 +9,3 @@ or MinGW, I'd love if you tell me and/or submit a patch!  I try to write
 portably except when GNU features make code much easier. (I've since estimated
 that if it wants such features, it probably makes sense for me to rewrite the
 script in Python).
-
