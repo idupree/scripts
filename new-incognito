@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Runs a new Chromium window with a non-persistent cookie jar separate from
+# all other Chromium windows.  Lets you have multiple separate incognito
+# sessions at once.  Also prevents leaks from incognito like bookmarks
+# (...which may be good or bad depending on your perspective).
+# Needed because https://code.google.com/p/chromium/issues/detail?id=24690
+# is WontFix.
+
+set -euo pipefail
+IFS='\n'
+cd /var/empty/
+
+main() {
+  local chrome=""
+  local name
+  for name in chromium-browser chromium google-chrome chrome; do
+    if which "$name" >/dev/null 2>&1; then
+      chrome="$name"
+      break
+    fi
+  done
+  if [ -z "$chrome" ]; then
+    echo "Chrome/chromium not found on PATH" >&2
+    exit 1
+  fi
+  local profile_dir="$(mktemp -d)"
+  touch "$profile_dir/First Run"
+  "$chrome" --user-data-dir="$profile_dir" --incognito || true
+  rm -rf "$profile_dir"
+}
+
+main
+
