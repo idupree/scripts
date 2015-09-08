@@ -37,11 +37,18 @@ sys.stdout.write(strf(now) + "\n" + "sleeping for " + str(secs) + " seconds unti
 
 # time.sleep(secs)
 sys.stdout.write("\n")
-while time.time() < alarm_at:
-    sys.stdout.write("   " + str(int(secs)) + "        \r")
-    secs -= 1
-    time.sleep(1)
-sys.stdout.write("\n" + strf(time.time()) + "\n")
+try:
+    while time.time() < alarm_at:
+        sys.stdout.write("   " + str(int(secs)) + "        \r")
+        secs -= 1
+        time.sleep(1)
+except KeyboardInterrupt:
+    # make sure the final time is still visible if interrupted
+    sys.stdout.write("\ninterrupted " + strf(time.time()) + " with " + str(secs+1) + " seconds\n")
+    exit(1)
+finally:
+    sys.stdout.write("\n")
+sys.stdout.write(strf(time.time()) + "\n")
 
 try:
     subprocess.call(['cvlc', '--quiet', '--play-and-exit', sound_file])
