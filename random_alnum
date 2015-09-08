@@ -3,8 +3,8 @@
 from __future__ import print_function, division
 import random, sys, re, math
 
-help = """random_alnum [-n[number of characters]] [valid characters set
-                                   for use in regexp character class]
+help = """random_alnum [-n[number of characters]] [-b[min bits of entropy]
+        [valid characters set for use in regexp character class]
 
   Outputs a bunch of cryptographically random ASCII letter and number
   characters. (There are 62 possibilities per character: 26 lowercase
