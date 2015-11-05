@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+
+# currently requires 'ag', aka 'the silver searcher'
+
+import os, sys, subprocess, re, collections
+
+# TODO handle cmdline args better
+searched_dir = '.' if len(sys.argv) <= 1 else sys.argv[1]
+if searched_dir == '--help' or not os.path.exists(searched_dir):
+  print('''
+Usage: $0 [searched-dir]
+
+Sends a graphviz dot-format digraph to stdout,
+representing C-family #include/#import statements
+between existent files in the searched directory.
+It assumes that includes/imports are relative to the
+path of the file doing the including, which may not
+be accurate if you've set the include search path.
+To get an image,
+
+$0 searched-dir | dot -Tpng > graph.png
+
+or replace 'dot' with 'fdp' or another Graphviz layout
+engine; they look significantly different from each other.
+
+''')
+  exit()
+
+Import = collections.namedtuple('Import', ['importtype', 'fromfile', 'tofile'])
+
+def debackslash(s):
+  return re.sub(r'[\\][\\]', lambda: '\\', s)
+
+def fnametodot(f):
+  return '"' + f.replace('_', ' ') + '"'
+
+def main():
+  include_regexp = r'[ \t]*#[ \t]*(include|import)[ \t]*"([^"]*)"'
+  filename_is_header_name_regexp = r'\.(hh|hpp|hxx|h)$'
+  # was git grep -E
+  # would use native python but it doesn't easily ignore .gitignore
+  # ag is the_silver_searcher
+  try:
+    grepped = subprocess.check_output(['ag', r'^'+include_regexp],
+                                      cwd=searched_dir).decode('utf-8')
+  except subprocess.CalledProcessError:
+    exit('no include statements found here')
+  imports = [
+    Import(importtype=ty,
+      fromfile=os.path.normpath(debackslash(fr)),
+      tofile=os.path.normpath(os.path.join(
+                os.path.dirname(debackslash(fr)),
+                debackslash(to))))
+    for l in grepped.splitlines()
+    for fr, ty, to in [re.search(r'^([^:]*):[0-9]*:'+include_regexp, l).groups()]
+    ]
+  # TODO include vertices that have no edges
+  # and make included things that we couldn't find as files
+  # be a separate color (red?) or warn about them
+  vertices = {f for f in {i.fromfile for i in imports} | {i.tofile for i in imports}
+              if os.path.exists(os.path.join(searched_dir, f))
+             }
+  edges = [i for i in imports if i.tofile in vertices]
+  headers = {i for i in vertices if re.search(filename_is_header_name_regexp, i)}
+  sources = {i for i in vertices if not re.search(filename_is_header_name_regexp, i)}
+  dotlines = []
+  dotlines.append('// GENERATED FILE')
+  dotlines.append('digraph {')
+  dotlines.append('splines=true;')
+  dotlines.append('sep="+5,5";')
+  dotlines.append('overlap=scalexy;')
+  dotlines.append('nodesep=0.6;')
+  dotlines.append('')
+  dotlines.append('node[style="filled"]')
+  dotlines.append('')
+  dotlines.append('node[color="orange"]')
+  for h in sorted(headers):
+    dotlines.append(fnametodot(h))
+  dotlines.append('')
+  dotlines.append('')
+  dotlines.append('node[color="green"]')
+  for s in sorted(sources):
+    dotlines.append(fnametodot(s))
+  for i in sorted(edges):
+    dotlines.append(fnametodot(i.fromfile) + ' -> ' + fnametodot(i.tofile))
+  dotlines.append('')
+  dotlines.append('}')
+  dot = '\n'.join(dotlines)+'\n'
+  sys.stdout.write(dot)
+
+if __name__ == '__main__':
+  main()
+
