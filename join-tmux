@@ -1,0 +1,3 @@
+#!/bin/sh
+set -eu
+if tmux has; then exec tmux attach; else exec tmux; fi
