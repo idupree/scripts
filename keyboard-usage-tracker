@@ -2,7 +2,17 @@
 
 import sys, os, time, subprocess, random, datetime, select
 
-keystrokes_cmd = '/home/test/scripts/keystrokes-tally'
+script_start_time = datetime.datetime.now()
+
+keystrokes_cmd = os.path.join(sys.path[0], 'keystrokes-tally')
+
+xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+data_dir = os.path.join(xdg_data_home, 'keyboard-usage-data')
+# intentionally keep writing to the same log file as long as this script runs,
+# as a way to allow the user to deal with varying sleep cycles making
+# begin/end of day strange (user should restart this script on day change)
+day_file = os.path.join(data_dir, "dated", script_start_time.strftime('%Y-%m-%d'))
+
 try:
   todays_threshold = int(sys.argv[1])
 except:
@@ -45,8 +55,6 @@ def wait_for_keystroke():
   return bool(select.select([keystrokes_subprocess.stdout], [], [],
     time_before_we_might_want_to_do_something_because_of_inactivity)[0])
 
-    
-day_file = "/home/test/keyboard_usage_data/dated/" + datetime.datetime.now().strftime('%Y-%m-%d')
 
 try:
   with open(day_file, 'r') as f:
