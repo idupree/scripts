@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+import sys, os, time, subprocess, random, datetime, select
+
+keystrokes_cmd = '/home/test/scripts/keystrokes-tally'
+try:
+  todays_threshold = int(sys.argv[1])
+except:
+  todays_threshold = 1100
+
+print("Today's threshold: "+str(todays_threshold))
+
+todays_keystrokes = None
+
+def notify(string):
+  subprocess.call(['notify-send', '--', string])
+
+def base_message():
+  return "You have typed "+str(todays_keystrokes)+" keystrokes today! Out of a maximum goal of "+str(todays_threshold)+"."
+
+def annoy():
+  notify(" gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg " +
+         (base_message() + " ") * 100)
+
+def do_something_about_keystroke_n():
+  if todays_keystrokes % 100 == 0:
+    notify(base_message())
+  if todays_keystrokes > todays_threshold * 0.9:
+    # annoyingness starts at 0 and goes up to 1
+    annoyingness = (todays_keystrokes - todays_threshold * 0.9) / (todays_threshold * 0.2)
+    if annoyingness > 1: annoyingness = 1
+    if annoyingness < 0: annoyingness = 0
+    # 0 annoyingness = annoy every 130 keystrokes? but you should get
+    # at least about 10 warnings before it warns for every keystroke
+    # 1 annoyingness = annoy every keystroke
+    one_in_n_warn_at_annoyingness_0 = min(100, round(todays_threshold * 0.2 / 10))
+    if random.randrange(round(one_in_n_warn_at_annoyingness_0 * (1 - annoyingness) + 1)) == 0:
+      annoy()
+
+keystrokes_subprocess = subprocess.Popen(['stdbuf', '-i0', '-o0', '-e0', keystrokes_cmd], stdout=subprocess.PIPE)
+time_before_we_might_want_to_do_something_because_of_inactivity = 3600 #seconds
+
+#returns bool where True = got keystroke, False = timeout or interrupted
+def wait_for_keystroke():
+  return bool(select.select([keystrokes_subprocess.stdout], [], [],
+    time_before_we_might_want_to_do_something_because_of_inactivity)[0])
+
+    
+day_file = "/home/test/keyboard_usage_data/dated/" + datetime.datetime.now().strftime('%Y-%m-%d')
+
+try:
+  with open(day_file, 'r') as f:
+    todays_keystrokes = int(f.read())
+except:
+  todays_keystrokes = 0
+try:
+  last_keystroke_date = datetime.datetime.fromtimestamp(os.stat(day_file).st_mtime)
+except:
+  last_keystroke_date = datetime.datetime.now()
+
+while True:
+  if wait_for_keystroke():
+    keystrokes_subprocess.stdout.readline()
+    todays_keystrokes += 1
+    print(todays_keystrokes)
+    last_keystroke_date = datetime.datetime.now()
+    with open(day_file, 'w') as f:
+      f.write(str(todays_keystrokes))
+    do_something_about_keystroke_n()
+

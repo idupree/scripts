@@ -1,0 +1,10 @@
+#!/bin/bash
+# Outputs one newline for each key press
+set -eu
+_keyboard_id="$(xinput list | grep 'KINESIS FREESTYLE KB700 KB700 Kinesis Freestyle' | grep keyboard | grep -ow 'id=[0-9]*' | sed 's/id=//')"
+if ! [[ "$_keyboard_id" =~ ^[0-9]+$ ]]; then
+  echo "couldn't find exactly one of your keyboard; please take a look at the script to try and fix" >&2
+  exit 1
+fi
+_nobuf="stdbuf -i0 -o0 -e0"
+$_nobuf xinput test "$_keyboard_id" </dev/null | $_nobuf grep -o 'key press' | $_nobuf sed 's/.*//'
