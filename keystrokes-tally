@@ -1,10 +1,15 @@
 #!/bin/bash
 # Outputs one newline for each key press
+# (In batches of $BUFSIZE+1, in order to make it a bit harder
+# for hostile code to use this tally to guess at what you're
+# typing based on timing.  BUFSIZE=0 to not buffer.  Default
+# value is below.)
 set -eu
 trap 'kill $(jobs -p)' EXIT
+_buffer="${BUFSIZE:-10}"
 _keyboard_ids="$(xinput list | grep -iE 'kb|keyboard' | grep -w 'slave' | grep -ow 'id=[0-9]*' | sed 's/id=//')"
 _nobuf="stdbuf -i0 -o0 -e0"
 for _keyboard_id in $_keyboard_ids; do
-  $_nobuf xinput test "$_keyboard_id" </dev/null | $_nobuf grep -o 'key press' | $_nobuf sed 's/.*//' &
+  $_nobuf xinput test "$_keyboard_id" </dev/null | $_nobuf grep -o 'key press' | stdbuf -i0 -o"$_buffer" -e0 sed 's/.*//' &
 done
 wait

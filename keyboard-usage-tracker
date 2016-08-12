@@ -16,7 +16,7 @@ day_file = os.path.join(data_dir, "dated", script_start_time.strftime('%Y-%m-%d'
 # http://stackoverflow.com/a/14364249/547512
 def mkdir_p(path):
   try:
-    os.makedirs(path)
+    os.makedirs(path, mode=int('700', 8))
   except OSError:
     if not os.path.isdir(path):
       raise
